@@ -23,7 +23,8 @@ from yowsup.layers.protocol_media.protocolentities import *
 from yowsup.layers.protocol_media.mediauploader import MediaUploader
 from yowsup.layers.protocol_profiles.protocolentities import *
 from yowsup.common.tools import ModuleTools, Jid
-
+import speech_recognition as sr
+from os import path
 logger = logging.getLogger(__name__)
 
 
@@ -554,7 +555,26 @@ class YowsupCliLayer(Cli, YowInterfaceLayer):
             media_url=message.getMediaUrl(),
             fname=filename
         )
-
+    def convertAudioToText(self, audioFile, targetTextFile):
+        AUDIO_FILE = path.join(path.dirname(path.realpath(__file__)), audioFile)
+        r = sr.Recognizer()
+        with sr.AudioFile(AUDIO_FILE) as source:
+            audio = r.record(source) # read the entire audio file
+            
+        try:
+            # for testing purposes, we're just using the default API key
+            # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
+            # instead of `r.recognize_google(audio)`
+            #print("Google Speech Recognition thinks you said " + r.recognize_google(audio))
+            f = open(targetTextFile, "w+")
+            f.write(r.recognize_google(audio))
+            f.close()
+        
+        except sr.UnknownValueError:
+            print("Google Speech Recognition could not understand audio")
+        except sr.RequestError as e:
+            print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        
     def doSendMedia(self, mediaType, filePath, url, to, ip=None, caption=None):
         if mediaType == RequestUploadIqProtocolEntity.MEDIA_TYPE_IMAGE:
             entity = ImageDownloadableMediaMessageProtocolEntity.fromFilePath(filePath, url, ip, to, caption=caption)
